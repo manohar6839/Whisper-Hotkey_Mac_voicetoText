@@ -3,21 +3,31 @@ venv/
 .venv/
 env/
 
-# Python cache
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-
-# Runtime files
-.whisper_hotkey/
-*.wav
-*.mp3
+.Python
+*.egg-info/
+dist/
+build/
 
 # macOS
 .DS_Store
 .AppleDouble
 .LSOverride
+._*
+
+# Whisper models (large files)
+*.pt
+*.bin
+
+# Temp files
+*.tmp
+*.temp
+*.log
+*.lock
 
 # IDE
 .idea/
@@ -25,5 +35,7 @@ __pycache__/
 *.swp
 *.swo
 
-# Logs
-*.log
+# Audio files (temp recordings)
+*.wav
+*.mp3
+*.m4a

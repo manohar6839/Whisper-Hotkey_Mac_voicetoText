@@ -1,7 +1,6 @@
-# Whisper Hotkey - Python Dependencies
+# Whisper Mac Dictation - Python Dependencies
 # Install with: pip install -r requirements.txt
 
-openai-whisper>=20230918
-sounddevice>=0.4.6
-soundfile>=0.12.1
+openai-whisper>=20231117
+pyaudio>=0.2.13
 numpy>=1.24.0
