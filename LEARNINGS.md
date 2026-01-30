@@ -324,6 +324,93 @@ task:start()
 
 ---
 
+## Issue #11: Slow Dictation (Model Loading Every Time)
+
+**Problem**: Each dictation took 5-7 seconds because Whisper model loaded fresh every time.
+
+**Root Cause**: The Python script was spawned fresh on each hotkey press, loading the 74MB+ model into memory each time.
+
+**Solution**: Create a persistent background server that keeps the model loaded:
+
+**Architecture**:
+```
+Before (Slow):
+  Hotkey → Start Python → Load Model (3-4s) → Record → Transcribe → Exit
+  
+After (Fast):
+  Server (always running): Model loaded in RAM
+  Hotkey → Connect to server → Record → Transcribe → Return
+```
+
+**Implementation**:
+1. `whisper_server.py` - Runs continuously, model always loaded
+2. `whisper_client.py` - Lightweight, just connects to server
+3. Unix socket (`/tmp/whisper_server.sock`) for fast IPC
+4. Fallback to direct mode if server not running
+
+**Speed Improvement**:
+- Before: 5-7 seconds per dictation
+- After: 1-3 seconds per dictation
+
+**Trade-off**: Server uses ~500MB RAM while running. Can stop it when not needed.
+
+---
+
+## Issue #12: Server Management UX
+
+**Problem**: Users need easy way to start/stop/check server status.
+
+**Solution**: Added menu bar dropdown with options:
+
+```lua
+state.menubar:setMenu(function()
+    return {
+        {title = "🎤 Start Dictation (⌘⇧V)", fn = startDictation},
+        {title = "-"},
+        {title = "Start Server", fn = startServer},
+        {title = "Stop Server", fn = stopServer},
+        {title = "Server Status", fn = checkServerStatus},
+    }
+end)
+```
+
+**Visual Indicators**:
+- 🎙️ = Server running (fast mode)
+- ⚪ = Server not running (slow mode)
+
+---
+
+## Issue #13: Auto-Start Server at Login
+
+**Problem**: Users had to manually start server after each reboot.
+
+**Solution**: macOS LaunchAgent:
+
+```xml
+<!-- ~/Library/LaunchAgents/com.whisper.dictation.server.plist -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.whisper.dictation.server</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/path/to/venv/bin/python3</string>
+        <string>/path/to/whisper_server.py</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+</dict>
+</plist>
+```
+
+**Key Settings**:
+- `RunAtLoad`: Start when user logs in
+- `KeepAlive`: Restart if crashes
+
+---
+
 ## 🔮 Future Improvements
 
 1. **Streaming transcription**: Show partial results while speaking
@@ -331,6 +418,7 @@ task:start()
 3. **Multiple hotkeys**: Different keys for different languages
 4. **Voice commands**: "Delete that", "New paragraph", etc.
 5. **iPhone companion**: Trigger from iPhone, transcribe on Mac
+6. **GPU acceleration**: Use Metal/MPS for faster inference on Apple Silicon
 
 ---
 

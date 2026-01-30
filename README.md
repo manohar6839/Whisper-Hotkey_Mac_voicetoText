@@ -4,91 +4,126 @@
 
 Press `⌘⇧V` anywhere → Speak → Text appears at cursor. That's it.
 
-![Demo](docs/demo.gif)
+---
 
-## ✨ Features
+## ⚡ Speed Comparison
 
-- **Works Everywhere**: Any app, any text field, including fullscreen apps
-- **Fully Offline**: No internet required, complete privacy
-- **Auto Silence Detection**: Stops recording when you stop speaking
-- **Visual Feedback**: Subtle overlay toast + menubar icon
-- **Fast**: ~3-6 seconds for typical dictation (with `base` model)
+| Mode | First Use | Subsequent |
+|------|-----------|------------|
+| **With Server (recommended)** | ~3s | **~1-2s** |
+| Without Server | ~5-7s | ~5-7s |
+
+The server keeps the Whisper model loaded in memory, eliminating the 3-4 second model loading time on each use.
+
+---
+
+## 📋 Prerequisites Checklist
+
+Before using, make sure:
+
+| Requirement | How to Check | How to Fix |
+|-------------|--------------|------------|
+| **Hammerspoon running** | Look for 🎙️ in menu bar | Open Hammerspoon.app |
+| **Accessibility permission** | Try the hotkey | System Settings → Privacy → Accessibility → Enable Hammerspoon |
+| **Microphone permission** | Try recording | System Settings → Privacy → Microphone → Enable Hammerspoon |
+| **Server running (for speed)** | 🎙️ = fast, ⚪ = slow | Click 🎙️ menu → Start Server |
+
+### First Time Setup Permissions
+
+1. **System Settings → Privacy & Security → Accessibility**
+   - Find **Hammerspoon** → Toggle ON ✓
+
+2. **System Settings → Privacy & Security → Microphone**  
+   - Find **Hammerspoon** → Toggle ON ✓
+
+---
 
 ## 🚀 Quick Install
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/whisper-mac-dictation.git
-cd whisper-mac-dictation
+git clone https://github.com/manohar6839/Whisper-Hotkey_Mac_voicetoText.git
+cd Whisper-Hotkey_Mac_voicetoText
 
 # Run installer
 chmod +x install.sh
 ./install.sh
 ```
 
-## 📋 Manual Installation
+---
 
-### Prerequisites
+## 🎯 Daily Usage
 
+### You Don't Need to Do Anything!
+
+Once installed:
+1. **Turn on Mac** → Hammerspoon auto-starts
+2. **Open any app** → Press `⌘⇧V` → Speak → Done!
+
+### Menu Bar Icon Guide
+
+| Icon | Meaning |
+|------|---------|
+| 🎙️ | Ready (server running, fastest) |
+| ⚪ | Ready (server off, slower) |
+| 🎤 | Recording your voice |
+| 🤖 | Transcribing |
+| ❌ | Error occurred |
+
+### Menu Bar Options (Click the icon)
+
+- **Start Dictation** - Same as `⌘⇧V`
+- **Start Server** - Enable fast mode
+- **Stop Server** - Free up RAM (~500MB)
+- **Server Status** - Check if server is running
+
+---
+
+## ⚡ Speed Optimization
+
+### Option 1: Manual Server Start (Recommended for testing)
+
+Click menu bar icon → **Start Server**
+
+Or run in Terminal:
 ```bash
-# Install Homebrew (if not installed)
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Install dependencies
-brew install python@3.11 ffmpeg portaudio
-brew install --cask hammerspoon
-```
-
-### Setup Python Environment
-
-```bash
-# Create project directory
-mkdir -p ~/MyProjects/whisper_hotkey
 cd ~/MyProjects/whisper_hotkey
-
-# Create virtual environment
-python3 -m venv venv
 source venv/bin/activate
-
-# Install packages
-pip install --upgrade pip
-pip install openai-whisper pyaudio numpy
+python3 whisper_server.py
 ```
 
-### Install Hammerspoon Config
+### Option 2: Auto-Start Server at Login
 
 ```bash
-# Copy the init.lua to Hammerspoon config
-cp init.lua ~/.hammerspoon/init.lua
+# Install the LaunchAgent
+cp com.whisper.dictation.server.plist ~/Library/LaunchAgents/
 
-# Copy the Python script
-cp whisper_dictate.py ~/MyProjects/whisper_hotkey/
+# Edit to use your username
+sed -i '' "s|USER_HOME|$USER|g" ~/Library/LaunchAgents/com.whisper.dictation.server.plist
+
+# Load it
+launchctl load ~/Library/LaunchAgents/com.whisper.dictation.server.plist
 ```
 
-### Grant Permissions
+Now the server starts automatically when you log in!
 
-1. **Accessibility**: System Settings → Privacy & Security → Accessibility → Enable Hammerspoon
-2. **Microphone**: System Settings → Privacy & Security → Microphone → Enable Hammerspoon
+### Option 3: Use Faster Model
 
-### Reload Hammerspoon
+Edit `~/.hammerspoon/init.lua`:
+```lua
+modelSize = "tiny",  -- Fastest: ~1-2s total
+-- modelSize = "base",  -- Balanced: ~2-3s total
+-- modelSize = "small",  -- Accurate: ~4-5s total
+```
 
-Click Hammerspoon menu bar icon → Reload Config
+### Speed Tips
 
-## 🎯 Usage
+1. **Keep server running** - Saves 3-4 seconds per dictation
+2. **Use `tiny` model** - Good enough for English dictation
+3. **Reduce silence duration** - Edit `whisper_server.py`: `silence_duration=1.0`
+4. **Keep Mac plugged in** - Battery mode throttles CPU
 
-| Action | Result |
-|--------|--------|
-| Press `⌘⇧V` | Start recording (green "🎤 Listening..." toast) |
-| Speak naturally | Dots appear showing audio detected |
-| Stop speaking (2s) | Auto-stops, transcribes |
-| Text appears | Typed at cursor position |
-
-### Menubar Icons
-
-- 🎙️ Ready
-- 🎤 Recording
-- 🤖 Transcribing
-- ❌ Error
+---
 
 ## ⚙️ Configuration
 
@@ -96,84 +131,115 @@ Edit `~/.hammerspoon/init.lua`:
 
 ```lua
 local config = {
-    -- Model: 'tiny', 'base', 'small', 'medium', 'large'
-    modelSize = "base",  -- Recommended for daily use
+    -- Model: 'tiny' (fast), 'base' (balanced), 'small' (accurate)
+    modelSize = "base",
     
-    -- Language: 'en', 'hi', 'es', etc. or 'auto'
+    -- Language: 'en', 'hi', 'es', 'auto' (auto-detect)
     language = "en",
     
-    -- Hotkey
-    hotkey = {
-        mods = {"cmd", "shift"},
-        key = "V"
-    },
+    -- Hotkey (default: Cmd+Shift+V)
+    hotkey = { mods = {"cmd", "shift"}, key = "V" },
     
-    playSound = true,  -- Audio feedback
-    debug = true       -- Console logging
+    -- Sound feedback
+    playSound = true,
+    
+    -- Debug logging (see Hammerspoon Console)
+    debug = true
 }
 ```
 
 ### Model Comparison
 
-| Model | Size | Speed | Accuracy | RAM |
-|-------|------|-------|----------|-----|
-| tiny | 39M | ~2s | Good | 1GB |
-| base | 74M | ~4s | Better | 1GB |
-| small | 244M | ~8s | Great | 2GB |
-| medium | 769M | ~15s | Excellent | 5GB |
-| large | 1550M | ~30s | Best | 10GB |
+| Model | Download | RAM | Speed | Accuracy |
+|-------|----------|-----|-------|----------|
+| tiny | 39 MB | ~1 GB | ⚡⚡⚡ | Good |
+| base | 74 MB | ~1 GB | ⚡⚡ | Better |
+| small | 244 MB | ~2 GB | ⚡ | Great |
+| medium | 769 MB | ~5 GB | 🐌 | Excellent |
+
+---
 
 ## 🔧 Troubleshooting
 
-### Toast not showing in fullscreen?
-The current implementation uses `hs.canvas` with overlay level - it should work in fullscreen. If not, check that Hammerspoon has Accessibility permissions.
-
-### "Already recording" error?
+### "Server not running" / Slow dictation
 ```bash
-# Clear the lock file
-rm /tmp/whisper_dictation.lock
+# Start the server manually
+cd ~/MyProjects/whisper_hotkey
+source venv/bin/activate
+python3 whisper_server.py
 ```
 
-### No audio detected?
-1. Check microphone permissions for Hammerspoon
-2. Test microphone in System Settings → Sound → Input
-3. Try increasing `silence_threshold` in `whisper_dictate.py`
+### Toast not appearing in fullscreen?
+Should work! If not, check Accessibility permissions for Hammerspoon.
 
-### Slow transcription?
-- Use `tiny` or `base` model for faster results
-- Ensure you're not running on battery (throttles CPU)
+### "Already recording" error
+```bash
+rm /tmp/whisper_dictation.lock
+rm /tmp/whisper_server.sock
+```
 
-### Check Hammerspoon Console
-Click Hammerspoon icon → Console to see debug logs.
+### Check server logs
+```bash
+cat /tmp/whisper_server.log
+```
+
+### Check Hammerspoon logs
+Click Hammerspoon menu bar icon → **Open Console**
+
+---
 
 ## 📁 Project Structure
 
 ```
 whisper_hotkey/
-├── README.md              # This file
-├── LEARNINGS.md           # Development learnings & gotchas
-├── init.lua               # Hammerspoon configuration
-├── whisper_dictate.py     # Main dictation script
-├── install.sh             # Automated installer
-├── requirements.txt       # Python dependencies
-└── docs/
-    └── demo.gif           # Demo animation
+├── README.md                              # This file
+├── LEARNINGS.md                           # All gotchas & solutions
+├── init.lua                               # Hammerspoon config
+├── whisper_server.py                      # Background server (fast)
+├── whisper_client.py                      # Client for server
+├── whisper_dictate.py                     # Standalone script (fallback)
+├── install.sh                             # Installer
+├── requirements.txt                       # Python deps
+└── com.whisper.dictation.server.plist    # LaunchAgent for auto-start
 ```
+
+---
+
+## 🆚 Comparison with Other Solutions
+
+| Feature | This Project | macOS Dictation | Wispr Flow |
+|---------|--------------|-----------------|------------|
+| Offline | ✅ Yes | ❌ No | ❌ No |
+| Privacy | ✅ 100% local | ❌ Apple servers | ❌ Cloud |
+| Speed | ⚡ 1-3s | ⚡ 1-2s | ⚡ 1-2s |
+| Accuracy | 🟢 Good | 🟢 Good | 🟢 Good |
+| Free | ✅ Yes | ✅ Yes | ❌ $10/mo |
+| Custom model | ✅ Yes | ❌ No | ❌ No |
+| Works in fullscreen | ✅ Yes | ✅ Yes | ✅ Yes |
+
+---
+
+## 📚 Learn More
+
+- **[LEARNINGS.md](LEARNINGS.md)** - All issues we solved and why
+- [OpenAI Whisper](https://github.com/openai/whisper) - The ML model
+- [Hammerspoon Docs](https://www.hammerspoon.org/docs/) - macOS automation
+
+---
 
 ## 🤝 Contributing
 
 1. Fork the repo
-2. Create feature branch (`git checkout -b feature/amazing`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push (`git push origin feature/amazing`)
-5. Open Pull Request
+2. Create feature branch
+3. Commit changes  
+4. Push and open PR
+
+---
 
 ## 📄 License
 
-MIT License - feel free to use, modify, and distribute.
+MIT License - use freely!
 
-## 🙏 Credits
+---
 
-- [OpenAI Whisper](https://github.com/openai/whisper) - Speech recognition
-- [Hammerspoon](https://www.hammerspoon.org/) - macOS automation
-- Built with help from Claude (Anthropic)
+*Built with 🎤 by Manohar with Claude*
